@@ -10,7 +10,7 @@
 Pod::Spec.new do |s|
   s.name             = "RMImageCropper"
   s.version          = "0.1.0"
-  s.summary          = "A short description of RMImageCropper."
+  s.summary          = "A simple image cropper that pans the image to crop instead of using a cropping rectangle."
   s.homepage         = "https://github.com/gsamtleben/RMImageCropper"
   s.license          = 'MIT'
   s.author           = { "Geoffrey Samtleben" => "gsamtleben@gmail.com" }
