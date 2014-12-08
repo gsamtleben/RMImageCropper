@@ -1,0 +1,14 @@
+PODS:
+  - RMImageCropper (0.1.0)
+
+DEPENDENCIES:
+  - RMImageCropper (from `../`)
+
+EXTERNAL SOURCES:
+  RMImageCropper:
+    :path: ../
+
+SPEC CHECKSUMS:
+  RMImageCropper: a1f1357d54a751c021deecadad5cf00f7105f420
+
+COCOAPODS: 0.34.4
