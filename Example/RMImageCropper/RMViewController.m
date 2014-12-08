@@ -4,7 +4,7 @@
 
 @interface RMViewController ()
 
-@property (weak, nonatomic) IBOutlet RMImageCropper *imageEditor;
+@property (weak, nonatomic) IBOutlet RMImageCropper *imageCropper;
 @property (weak, nonatomic) IBOutlet UIImageView *editedImageView;
 
 @property (strong, nonatomic) NSTimer *timer;
@@ -21,46 +21,37 @@
     
     UIImage * image = [UIImage imageNamed:@"Charming-as-always-captain-jack-sparrow-32570197-578-506"];
     
-    self.imageEditor.minimum = 100;
-    self.imageEditor.image = image;
-    self.imageEditor.initialScale = RMImageEditorModeAspectFill;
-    self.imageEditor.minimumScale = RMImageEditorModeAspectFit;
+    self.imageCropper.minimum = 100;
+    self.imageCropper.image = image;
+    self.imageCropper.initialScale = RMImageCropperModeAspectFill;
+    self.imageCropper.minimumScale = RMImageCropperModeAspectFit;
     
-    [self.view addSubview:_imageEditor];
+    [self.view addSubview:_imageCropper];
     
     self.timer = [NSTimer scheduledTimerWithTimeInterval:0.01f target:self selector:@selector(updateImage:) userInfo:nil repeats:true];
-    
-    self.editedImageView.userInteractionEnabled = true;
-    
-    UITapGestureRecognizer *recognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(toggleMode:)];
-    [self.editedImageView addGestureRecognizer:recognizer];
 }
 
 - (void)updateImage:(NSTimer *)timer
 {
-    self.editedImageView.image = self.imageEditor.editedImage;
+    [self.imageCropper editedImageAsync:^(UIImage *image) {
+       
+        self.editedImageView.image = image;
+    }];
 }
 
-- (void)toggleMode:(UITapGestureRecognizer *)recognizer
-{
-    if (self.imageEditor.minimumScale == RMImageEditorModeAspectFit)
-    {
-        self.imageEditor.minimumScale = RMImageEditorModeAspectFill;
-    }
-    else
-    {
-        self.imageEditor.minimumScale = RMImageEditorModeAspectFit;
-    }
-}
 - (IBAction)takePicture:(id)sender
 {
-    if (self.imageEditor.initialScale == RMImageEditorModeAspectFit)
+    UIButton *button = sender;
+    
+    if (self.imageCropper.minimumScale == RMImageCropperModeAspectFit)
     {
-        self.imageEditor.initialScale = RMImageEditorModeAspectFill;
+        self.imageCropper.minimumScale = RMImageCropperModeAspectFill;
+        [button setTitle:@"Switch Minimum to Aspect Fit" forState:UIControlStateNormal];
     }
     else
     {
-        self.imageEditor.initialScale = RMImageEditorModeAspectFit;
+        self.imageCropper.minimumScale = RMImageCropperModeAspectFit;
+        [button setTitle:@"Switch Minimum to Aspect Fill" forState:UIControlStateNormal];
     }
 }
 

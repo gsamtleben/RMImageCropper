@@ -54,8 +54,8 @@ CGFloat const RESET_DURATION = 0.10f;
 - (void)initialize
 {
     _enabled = true;
-    _initialScale = RMImageEditorModeAspectFill;
-    _minimumScale = RMImageEditorModeAspectFill;
+    _initialScale = RMImageCropperModeAspectFill;
+    _minimumScale = RMImageCropperModeAspectFill;
     _imageView = [[UIImageView alloc] init];
     _imageView.userInteractionEnabled = true;
     _scaleTransform = CGAffineTransformIdentity;
@@ -107,7 +107,7 @@ CGFloat const RESET_DURATION = 0.10f;
 
 - (void)setImageViewToFitFrame
 {
-    CGSize minimumSize = self.initialScale == RMImageEditorModeAspectFill ? [self getMinimumFillImageViewSize] : [self getMinimumImageViewSize];
+    CGSize minimumSize = self.initialScale == RMImageCropperModeAspectFill ? [self getMinimumFillImageViewSize] : [self getMinimumImageViewSize];
     
     self.scaleTransform = CGAffineTransformIdentity;
     self.imageView.transform = CGAffineTransformIdentity;
@@ -130,27 +130,27 @@ CGFloat const RESET_DURATION = 0.10f;
     return [self getMinimumImageViewSizeForMode:self.minimumScale];
 }
 
-- (CGSize)getMinimumImageViewSizeForMode:(RMImageEditorMode)mode
+- (CGSize)getMinimumImageViewSizeForMode:(RMImageCropperMode)mode
 {
     CGFloat width = self.rm_width;
     CGFloat height = self.rm_height;
     
-    if ([self isPortrait] && mode == RMImageEditorModeAspectFill)
+    if ([self isPortrait] && mode == RMImageCropperModeAspectFill)
     {
         // We have to make the image view taller so that there are no gaps on the right and left
         height = MAX(height, width / [self getImageAspectRatio]);
     }
-    else if ([self isPortrait] && mode == RMImageEditorModeAspectFit)
+    else if ([self isPortrait] && mode == RMImageCropperModeAspectFit)
     {
         // We have to make the image view wide enough so that there are no gaps on the top and bottom
         width = height * [self getImageAspectRatio];
     }
-    else if ([self isLandscape] && mode == RMImageEditorModeAspectFill)
+    else if ([self isLandscape] && mode == RMImageCropperModeAspectFill)
     {
         // We have to make the image view wider so that there are no gaps on top and bottom
         width = MAX(width, height * [self getImageAspectRatio]);
     }
-    else if ([self isLandscape] && mode == RMImageEditorModeAspectFit)
+    else if ([self isLandscape] && mode == RMImageCropperModeAspectFit)
     {
         // We have to make the image view tall enough so that there are no gaps on the left and right
         height = width / [self getImageAspectRatio];
@@ -161,7 +161,7 @@ CGFloat const RESET_DURATION = 0.10f;
 
 - (CGSize)getMinimumFillImageViewSize
 {
-    return [self getMinimumImageViewSizeForMode:RMImageEditorModeAspectFill];
+    return [self getMinimumImageViewSizeForMode:RMImageCropperModeAspectFill];
 }
 
 - (CGSize)getMaximumImageViewSize
@@ -222,7 +222,7 @@ CGFloat const RESET_DURATION = 0.10f;
     }
 }
 
-- (void)setInitialScale:(RMImageEditorMode)initialScale
+- (void)setInitialScale:(RMImageCropperMode)initialScale
 {
     _initialScale = initialScale;
     
@@ -231,7 +231,7 @@ CGFloat const RESET_DURATION = 0.10f;
     [self setImageViewToFitFrame];
 }
 
-- (void)setMinimumScale:(RMImageEditorMode)minimumScale
+- (void)setMinimumScale:(RMImageCropperMode)minimumScale
 {
     _minimumScale = minimumScale;
     
@@ -242,33 +242,50 @@ CGFloat const RESET_DURATION = 0.10f;
 
 - (UIImage *)editedImage
 {
+    
     CGRect frameRect = [self getFrameRect];
     CGRect imageRect = [self getImageRect];
     
+    return [RMImageCropper editedImageFromImage:self.image andFrame:frameRect andImageRect:imageRect andImageViewWidth:self.imageView.rm_width andImageViewHeight:self.imageView.rm_height];
+}
+
+- (void)editedImageAsync:(void (^)(UIImage *image))complete
+{
+    CGRect frameRect = [self getFrameRect];
+    CGRect imageRect = [self getImageRect];
+    UIImage *image = self.image;
+    CGFloat width = self.imageView.rm_width;
+    CGFloat height = self.imageView.rm_height;
+    
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        
+        UIImage *editedImage = [RMImageCropper editedImageFromImage:image andFrame:frameRect andImageRect:imageRect andImageViewWidth:width andImageViewHeight:height];
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            
+            complete(editedImage);
+        });
+    });
+}
+
++ (UIImage *)editedImageFromImage:(UIImage *)image andFrame:(CGRect)frameRect andImageRect:(CGRect)imageRect andImageViewWidth:(CGFloat)width andImageViewHeight:(CGFloat)height
+{
     CGFloat x = frameRect.origin.x - imageRect.origin.x;
     CGFloat y = frameRect.origin.y - imageRect.origin.y;
     
     CGRect croppingRect = CGRectMake(x, y, frameRect.size.width, frameRect.size.height);
     CGRect imageCroppingRect;
     
-    imageCroppingRect.origin.x = croppingRect.origin.x / self.imageView.rm_width * _image.size.width * _image.scale;
-    imageCroppingRect.origin.y = croppingRect.origin.y / self.imageView.rm_height * _image.size.height * _image.scale;
-    imageCroppingRect.size.width = croppingRect.size.width / self.imageView.rm_width * _image.size.width * _image.scale;
-    imageCroppingRect.size.height = croppingRect.size.height / self.imageView.rm_height * _image.size.height * _image.scale;
+    imageCroppingRect.origin.x = croppingRect.origin.x / width * image.size.width * image.scale;
+    imageCroppingRect.origin.y = croppingRect.origin.y / height * image.size.height * image.scale;
+    imageCroppingRect.size.width = croppingRect.size.width / width * image.size.width * image.scale;
+    imageCroppingRect.size.height = croppingRect.size.height / height * image.size.height * image.scale;
     
-    CGImageRef imageReference = CGImageCreateWithImageInRect([self.image CGImage], imageCroppingRect);
-    UIImage *croppedImage = [UIImage imageWithCGImage:imageReference scale:_image.scale orientation:_image.imageOrientation];
+    CGImageRef imageReference = CGImageCreateWithImageInRect([image CGImage], imageCroppingRect);
+    UIImage *croppedImage = [UIImage imageWithCGImage:imageReference scale:image.scale orientation:image.imageOrientation];
     CGImageRelease(imageReference);
     
     return croppedImage;
-}
-
-- (void)editedImageAsync:(void (^)(UIImage *image))complete
-{
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        
-        complete(self.editedImage);
-    });
 }
 
 - (void)setMinimum:(NSInteger)minimum
@@ -278,11 +295,11 @@ CGFloat const RESET_DURATION = 0.10f;
     [self correctSizeAndTranslationErrors];
 }
 
-- (void)resetToScale:(RMImageEditorMode)scale WithDuration:(NSTimeInterval)duration andCompletion:(void (^) (void))completion;
+- (void)resetToScale:(RMImageCropperMode)scale WithDuration:(NSTimeInterval)duration andCompletion:(void (^) (void))completion;
 {
     self.enabled = false;
     
-    CGSize minimumSize = scale == RMImageEditorModeAspectFill ? [self getMinimumFillImageViewSize] : [self getMinimumImageViewSize];
+    CGSize minimumSize = scale == RMImageCropperModeAspectFill ? [self getMinimumFillImageViewSize] : [self getMinimumImageViewSize];
     
     [UIView animateWithDuration:duration animations:^{
         
@@ -484,7 +501,7 @@ CGFloat const RESET_DURATION = 0.10f;
         CGRect image = [self getImageRect];
         CGRect frame = [self getFrameRect];
         
-        if (self.minimumScale == RMImageEditorModeAspectFit)
+        if (self.minimumScale == RMImageCropperModeAspectFit)
         {
             CGSize minimumSize = [self getMinimumImageViewSize];
             frame = CGRectMake(0.0f, 0.0f, minimumSize.width, minimumSize.height);
@@ -584,15 +601,15 @@ CGFloat const RESET_DURATION = 0.10f;
 
 - (void)doubleTapRecognized:(UITapGestureRecognizer *)recognizer
 {
-    RMImageEditorMode scale = RMImageEditorModeAspectFit;
+    RMImageCropperMode scale = RMImageCropperModeAspectFit;
     
     if ([self isPortrait] && (self.leftGap > 0.5f || self.rightGap > 0.5f))
     {
-        scale = RMImageEditorModeAspectFill;
+        scale = RMImageCropperModeAspectFill;
     }
     else if ([self isLandscape] && (self.topGap > 0.5f || self.bottomGap > 0.5f))
     {
-        scale = RMImageEditorModeAspectFill;
+        scale = RMImageCropperModeAspectFill;
     }
     
     [self resetToScale:scale WithDuration:RESET_DURATION andCompletion:nil];
