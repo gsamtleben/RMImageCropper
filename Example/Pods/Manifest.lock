@@ -1,5 +1,5 @@
 PODS:
-  - RMImageCropper (0.1.0)
+  - RMImageCropper (0.1.1)
 
 DEPENDENCIES:
   - RMImageCropper (from `../`)
@@ -9,6 +9,6 @@ EXTERNAL SOURCES:
     :path: ../
 
 SPEC CHECKSUMS:
-  RMImageCropper: a1f1357d54a751c021deecadad5cf00f7105f420
+  RMImageCropper: 3d65800cf55ba85786ac6aa6670ef9424c57d797
 
 COCOAPODS: 0.34.4
